@@ -1,0 +1,210 @@
+openapi: 3.0.3
+info:
+  title: ATLAS Sample Task & User API
+  description: A comprehensive sample OpenAPI 3.0 specification for ATLAS test suite.
+  version: 1.0.0
+servers:
+  - url: https://api.atlas.dev/v1
+    description: Production Server
+
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      summary: List all users
+      description: Retrieve a paginated list of users with optional role filtering.
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          description: Filter users by their role
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      operationId: createUser
+      summary: Create a new user
+      description: Register a new user in the system.
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      requestBody:
+        description: User registration payload
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Username or email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}:
+    get:
+      operationId: getUserById
+      summary: Get user by ID
+      description: Public lookup endpoint to fetch user public profile.
+      tags:
+        - Users
+      security: []
+      parameters:
+        - name: id
+          in: path
+          description: Unique user identifier
+          required: true
+          schema:
+            type: string
+        - name: includeDetails
+          in: query
+          description: Flag to include extended user profile details
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: User details found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      operationId: getHealthStatus
+      summary: System health probe
+      description: Probe for load balancer and uptime monitoring.
+      tags:
+        - System
+      responses:
+        '200':
+          description: System operational
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Standard JSON Web Token bearer authentication header.
+
+  schemas:
+    User:
+      type: object
+      description: Represents an active user entity.
+      required:
+        - id
+        - username
+        - email
+      properties:
+        id:
+          type: string
+          description: Unique ID of the user
+        username:
+          type: string
+          description: Unique username handle
+        email:
+          type: string
+          format: email
+          description: Primary email address
+        role:
+          type: string
+          description: User authorization role
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of account creation
+
+    CreateUserRequest:
+      type: object
+      description: Payload required to create a new user account.
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          description: User account handle
+        email:
+          type: string
+          format: email
+          description: User account email
+        password:
+          type: string
+          format: password
+          description: Raw password for initial registration
+        role:
+          type: string
+          description: Optional initial role assignment
+
+    ErrorResponse:
+      type: object
+      description: Standard error response payload.
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: string
+          description: Optional contextual error details

@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: ATLAS Sample Task & User API v2
+  description: A comprehensive sample OpenAPI 3.0 specification for ATLAS test suite (Version 2).
+  version: 2.0.0
+servers:
+  - url: https://api.atlas.dev/v2
+    description: Production Server v2
+
+paths:
+  /users:
+    get:
+      operationId: listUsers
+      summary: List all users with filtering and sorting
+      description: Retrieve a paginated list of users with optional role filtering.
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of users to return
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          description: Filter users by their role
+          required: false
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          description: Sort field
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      operationId: createUser
+      summary: Create a new user
+      description: Register a new user in the system.
+      tags:
+        - Users
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: X-Tenant-ID
+          in: header
+          description: Required tenant identifier
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: User registration payload
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Username or email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /organizations:
+    get:
+      operationId: listOrganizations
+      summary: List all organizations
+      description: Retrieve all organizations.
+      tags:
+        - Organizations
+      responses:
+        '200':
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Organization'
+
+  /health:
+    get:
+      operationId: getHealthStatus
+      summary: System health probe
+      description: Probe for load balancer and uptime monitoring.
+      tags:
+        - System
+      responses:
+        '200':
+          description: System operational
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Standard JSON Web Token bearer authentication header.
+
+  schemas:
+    User:
+      type: object
+      description: Represents an active user entity.
+      required:
+        - id
+        - username
+        - status
+      properties:
+        id:
+          type: integer
+          description: Unique numeric ID of the user
+        username:
+          type: string
+          description: Unique username handle
+        status:
+          type: string
+          description: User account status
+        role:
+          type: string
+          description: User authorization role
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp of account creation
+
+    CreateUserRequest:
+      type: object
+      description: Payload required to create a new user account.
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          description: User account handle
+        email:
+          type: string
+          format: email
+          description: User account email
+        password:
+          type: string
+          format: password
+          description: Raw password for initial registration
+        role:
+          type: string
+          description: Optional initial role assignment
+
+    Organization:
+      type: object
+      description: Organization entity
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+
+    ErrorResponse:
+      type: object
+      description: Standard error response payload.
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: string
+          description: Optional contextual error details
